@@ -11,6 +11,12 @@ const optionalString = z
   .optional()
   .transform((v) => (v && v.trim() !== "" ? v.trim() : undefined));
 
+// IDs no banco podem ser CUIDs gerados (@default(cuid())) ou strings
+// determinísticas usadas em seed (ex: "seed_arg_02"). A validação aqui é
+// só sanidade de tamanho — Prisma escapa parâmetros e findUnique retorna
+// null para IDs inexistentes.
+export const dbIdSchema = z.string().min(1).max(64);
+
 export const topicNameSchema = z
   .string()
   .trim()
@@ -31,13 +37,16 @@ export const createArgumentSchema = z.object({
     .min(10, "Conteúdo deve ter ao menos 10 caracteres.")
     .max(ARGUMENT_CONTENT_MAX, `Conteúdo acima de ${ARGUMENT_CONTENT_MAX} caracteres.`),
   image: optionalString.pipe(z.string().url("URL inválida.").max(2000).optional()),
-  parentArgumentId: optionalString.pipe(z.string().cuid().optional()),
+  parentArgumentId: optionalString.pipe(dbIdSchema.optional()),
 });
 
 export type CreateArgumentInput = z.infer<typeof createArgumentSchema>;
 
 export const replyArgumentSchema = z.object({
-  parentArgumentId: z.string().cuid("Argumento pai inválido."),
+  parentArgumentId: z
+    .string()
+    .min(1, "Argumento pai inválido.")
+    .max(64, "Argumento pai inválido."),
   content: z
     .string()
     .trim()

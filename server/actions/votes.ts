@@ -6,6 +6,7 @@ import { prisma } from "@/server/db/client";
 import { requireUser } from "@/server/auth/session";
 import { hotScore } from "@/lib/ranking";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { dbIdSchema } from "@/lib/validation/argument.schema";
 
 const voteValueSchema = z.enum(["UP", "DOWN", "NONE"]);
 
@@ -25,7 +26,7 @@ export async function voteOnArgument(
 ): Promise<VoteResult> {
   const user = await requireUser();
   const parsedValue = voteValueSchema.parse(next ?? "NONE");
-  const cuid = z.string().cuid().parse(argumentId);
+  const cuid = dbIdSchema.parse(argumentId);
 
   await checkRateLimit({
     action: "vote",

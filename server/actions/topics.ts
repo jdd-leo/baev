@@ -1,18 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { prisma } from "@/server/db/client";
 import { requireUser } from "@/server/auth/session";
 import { checkRateLimit } from "@/lib/rate-limit";
-
-const cuidSchema = z.string().cuid();
+import { dbIdSchema } from "@/lib/validation/argument.schema";
 
 export async function toggleFavoriteTopic(
   topicId: string,
 ): Promise<{ favorited: boolean }> {
   const user = await requireUser();
-  const id = cuidSchema.parse(topicId);
+  const id = dbIdSchema.parse(topicId);
 
   await checkRateLimit({
     action: "favoriteTopic",

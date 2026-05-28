@@ -5,6 +5,7 @@ import { getArgumentsByTopic, getUserVotesFor } from "@/server/db/queries/argume
 import { getFeed, type FeedTab } from "@/server/db/queries/feed";
 import { getUserArguments } from "@/server/db/queries/users";
 import { getCurrentUser } from "@/server/auth/session";
+import { dbIdSchema } from "@/lib/validation/argument.schema";
 import type { ArgumentListItem } from "@/server/db/queries/arguments";
 
 export type Cursor = { hotScore?: number; createdAt?: string; id: string };
@@ -19,7 +20,7 @@ const cursorSchema = z
   .object({
     hotScore: z.number().optional(),
     createdAt: z.string().optional(),
-    id: z.string().cuid(),
+    id: dbIdSchema,
   })
   .nullable();
 
@@ -40,7 +41,7 @@ export async function fetchMoreTopic(
 ): Promise<PageResult> {
   const parsedCursor = cursorSchema.parse(cursor);
   const { items, nextCursor } = await getArgumentsByTopic({
-    topicId: z.string().cuid().parse(topicId),
+    topicId: dbIdSchema.parse(topicId),
     sort,
     cursor: parsedCursor ?? undefined,
   });
@@ -66,7 +67,7 @@ export async function fetchMoreUser(
   cursor: Cursor | null,
 ): Promise<PageResult> {
   const parsedCursor = cursorSchema.parse(cursor);
-  const userIdSafe = z.string().cuid().parse(userId);
+  const userIdSafe = dbIdSchema.parse(userId);
   const { items, nextCursor } = await getUserArguments({
     userId: userIdSafe,
     cursor: parsedCursor
