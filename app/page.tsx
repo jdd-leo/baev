@@ -41,6 +41,7 @@ export default async function HomePage({
           <FeedTabs current={tab} isAuthenticated={!!user} />
         </header>
         <LoadMoreList
+          key={tab}
           initialItems={items}
           initialMyVotes={myVotes}
           initialCursor={nextCursor}
