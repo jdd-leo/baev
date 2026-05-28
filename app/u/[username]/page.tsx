@@ -17,7 +17,7 @@ export async function generateMetadata({
   const profile = await getUserProfileByUsername(username);
   if (!profile) return { title: "Usuário não encontrado" };
   const display = profile.name ?? `@${profile.username}`;
-  const description = profile.bio ?? `${display} no Banco de Argumentos.`;
+  const description = profile.bio ?? `${display} no Baev.`;
   return {
     title: display,
     description,

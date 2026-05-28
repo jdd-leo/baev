@@ -37,7 +37,7 @@ export default async function HomePage({
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-8">
       <div className="space-y-4">
         <header className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Banco de Argumentos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Baev - The Argument Database</h1>
           <FeedTabs current={tab} isAuthenticated={!!user} />
         </header>
         <LoadMoreList
