@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useActionState, useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { replyToArgument, type ReplyArgumentState } from "@/server/actions/arguments";
 import { ARGUMENT_CONTENT_MAX } from "@/lib/validation/argument.schema";
@@ -15,7 +15,11 @@ type Props = {
 export function ReplyForm({ parentArgumentId, isAuthenticated }: Props) {
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState("");
-  const [state, action, pending] = useActionState(replyToArgument, INITIAL);
+  const boundAction = useMemo(
+    () => replyToArgument.bind(null, parentArgumentId),
+    [parentArgumentId],
+  );
+  const [state, action, pending] = useActionState(boundAction, INITIAL);
   const fieldId = useId();
   const router = useRouter();
 
@@ -53,8 +57,7 @@ export function ReplyForm({ parentArgumentId, isAuthenticated }: Props) {
   }
 
   return (
-    <form action={action} className="mt-2 space-y-2">
-      <input type="hidden" name="parentArgumentId" value={parentArgumentId} />
+    <form action={action} className="mt-2 w-full basis-full space-y-2">
       <div>
         <div className="flex items-baseline justify-between">
           <label htmlFor={fieldId} className="text-xs text-foreground/70">
@@ -77,7 +80,7 @@ export function ReplyForm({ parentArgumentId, isAuthenticated }: Props) {
           maxLength={ARGUMENT_CONTENT_MAX}
           required
           autoFocus
-          className="mt-1 w-full rounded-md border border-black/10 dark:border-white/15 bg-background px-3 py-2 text-sm font-mono"
+          className="mt-1 block w-full rounded-md border border-black/10 dark:border-white/15 bg-background px-3 py-2 text-sm font-mono"
         />
         {state.errors?.content && <p className="text-xs text-red-600">{state.errors.content}</p>}
       </div>

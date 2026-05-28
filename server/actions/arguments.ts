@@ -122,6 +122,7 @@ export type ReplyArgumentState = {
 };
 
 export async function replyToArgument(
+  parentArgumentId: string,
   _prev: ReplyArgumentState,
   formData: FormData,
 ): Promise<ReplyArgumentState> {
@@ -140,7 +141,7 @@ export async function replyToArgument(
   }
 
   const raw = {
-    parentArgumentId: formData.get("parentArgumentId")?.toString() ?? "",
+    parentArgumentId,
     content: formData.get("content")?.toString() ?? "",
     image: formData.get("image")?.toString() ?? "",
   };
@@ -155,7 +156,7 @@ export async function replyToArgument(
     return { errors, values: { content: raw.content, image: raw.image } };
   }
 
-  const { parentArgumentId, content, image } = parsed.data;
+  const { content, image } = parsed.data;
 
   const parent = await prisma.argument.findUnique({
     where: { id: parentArgumentId },
