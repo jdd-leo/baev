@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: baev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: baev
+      POSTGRES_PASSWORD: baev
+      POSTGRES_DB: baev
+    ports:
+      - "5433:5432"
+    volumes:
+      - baev_pg_data:/var/lib/postgresql/data
+
+volumes:
+  baev_pg_data:

@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // DIRECT_URL é usado por `prisma migrate` para conexão direta (sem pooler).
+  // Em Neon, DATABASE_URL aponta para o pooler (-pooler) e DIRECT_URL para a connection direta.
+  // Em dev local (Postgres no Docker) ambos podem apontar para o mesmo endpoint.
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Auth.js (PrismaAdapter) ────────────────────────────────────
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Domínio ────────────────────────────────────────────────────
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  emailVerified DateTime?
+  image         String?
+  username      String          @unique
+  bio           String?         @db.VarChar(280)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  arguments     Argument[]
+  votes         Vote[]
+  favorites     TopicFavorite[]
+
+  @@index([username])
+}
+
+model Topic {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  name        String
+  description String?         @db.VarChar(500)
+  image       String?
+  createdAt   DateTime        @default(now())
+
+  arguments   Argument[]
+  favorites   TopicFavorite[]
+
+  @@index([slug])
+}
+
+model TopicFavorite {
+  userId    String
+  topicId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([userId, topicId])
+  @@index([topicId])
+}
+
+model Argument {
+  id               String     @id @default(cuid())
+  slug             String     @unique
+  title            String     @db.VarChar(140)
+  content          String     @db.VarChar(500)
+  image            String?
+  authorId         String
+  topicId          String
+  parentArgumentId String?
+  rootArgumentId   String?
+  depth            Int        @default(0)
+
+  upvotes          Int        @default(0)
+  downvotes        Int        @default(0)
+  score            Int        @default(0)
+  hotScore         Float      @default(0)
+
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+
+  author           User       @relation(fields: [authorId], references: [id])
+  topic            Topic      @relation(fields: [topicId], references: [id])
+  parent           Argument?  @relation("ArgumentReplies", fields: [parentArgumentId], references: [id], onDelete: Cascade)
+  replies          Argument[] @relation("ArgumentReplies")
+  votes            Vote[]
+
+  @@index([topicId, hotScore(sort: Desc)])
+  @@index([topicId, createdAt(sort: Desc)])
+  @@index([parentArgumentId])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([rootArgumentId])
+}
+
+enum VoteValue {
+  UP
+  DOWN
+}
+
+model Vote {
+  userId     String
+  argumentId String
+  value      VoteValue
+  createdAt  DateTime  @default(now())
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  argument   Argument  @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, argumentId])
+  @@index([argumentId])
+}
+
+// Rate limit baseado em janela fixa.
+// key = "<action>:<identifier>", windowStart = início da janela (epoch seconds truncado).
+model RateLimit {
+  key         String
+  windowStart Int
+  count       Int      @default(0)
+  expiresAt   DateTime
+
+  @@id([key, windowStart])
+  @@index([expiresAt])
+}

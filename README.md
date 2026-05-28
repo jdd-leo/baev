@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Banco de Argumentos
 
-## Getting Started
+Plataforma social de debates organizados por assunto. Usuários autenticam com Google, criam argumentos (até 500 caracteres) dentro de um assunto, respondem com contra-argumentos infinitos e votam (up/down).
 
-First, run the development server:
+## Stack
 
+- Next.js 16 (App Router, Server Components, Server Actions, Turbopack)
+- TypeScript estrito
+- TailwindCSS 4
+- Prisma 6 + PostgreSQL 16
+- Auth.js v5 (Google OAuth, JWT strategy)
+- Zod (validação)
+- Rate limit baseado em Postgres
+- Hospedagem: Vercel + Neon
+
+## Setup local
+
+### 1. Pré-requisitos
+- Node.js 22+
+- Docker + Docker Compose
+
+### 2. Variáveis de ambiente
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
+```
+Preencha:
+- `AUTH_SECRET` — gere com `openssl rand -base64 32`
+- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — Google Cloud Console → APIs & Services → Credentials. Redirect URI: `http://localhost:3000/api/auth/callback/google`
+- `DATABASE_URL` e `DIRECT_URL` — em dev local apontam para o mesmo endpoint do Docker
+
+### 3. Banco de dados
+```bash
+docker compose up -d         # Postgres na porta 5433
+npm install
+npm run db:migrate           # aplica migrations
+npm run db:seed              # cria 5 assuntos iniciais (opcional)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 4. Rodar
+```bash
+npm run dev
+```
+Abra http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy em produção
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Veja **[DEPLOY.md](./DEPLOY.md)** — guia passo-a-passo para subir na Vercel com Neon.
 
-## Learn More
+## Scripts
+| Comando | Função |
+|---------|--------|
+| `npm run dev` | Dev server (Turbopack) |
+| `npm run build` | Build de produção |
+| `npm run vercel-build` | Build em CI/Vercel (`migrate deploy` + `next build`) |
+| `npm run db:migrate` | `prisma migrate dev` |
+| `npm run db:generate` | `prisma generate` |
+| `npm run db:seed` | Popular assuntos iniciais |
+| `npm run db:studio` | Abrir Prisma Studio |
 
-To learn more about Next.js, take a look at the following resources:
+## Estrutura de pastas
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/                    rotas (App Router)
+  api/auth/             Auth.js route handler
+  arg/[topic]/          listagem + detalhe de argumentos (recursivos)
+  create/               criar argumento (Server Action)
+  explore/              ranking de assuntos mais ativos
+  login/                página de login
+  u/[username]/         perfil
+  opengraph-image.tsx   OG default + dinâmico por argumento
+  robots.ts, sitemap.ts SEO
+components/             UI
+  argument/             form, node, tree, vote-buttons, reply-form
+  feed/                 feed-tabs, sidebar, load-more, skeletons
+  layout/               header, user menu
+  markdown/             renderer sanitizado
+  seo/                  JSON-LD
+  topic/                header, favorite toggle
+server/
+  auth/                 config Auth.js + helpers
+  db/queries/           argumentos, topics, feed, users
+  actions/              arguments, votes, topics, pagination
+lib/                    utilidades puras
+  ids.ts                shortId
+  ranking.ts            hotScore
+  rate-limit.ts         checkRateLimit
+  sanitize/             (markdown sanitization via rehype-sanitize)
+  seo.ts                getBaseUrl + constantes
+  slug.ts               slugify + username
+  validation/           schemas Zod
+prisma/                 schema, migrations, seed
+proxy.ts                Auth.js middleware (Edge)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Roadmap
 
-## Deploy on Vercel
+- [x] **Fase 1** — Setup + Auth + Schema
+- [x] **Fase 2** — CRUD de argumentos + markdown sanitizado
+- [x] **Fase 3** — Votos + árvore recursiva
+- [x] **Fase 4** — Feed (3 abas) + favoritos + perfil + paginação
+- [x] **Fase 5** — Rate limit (Postgres) + error/loading boundaries
+- [x] **Fase 6** — SEO (sitemap, robots, OG dinâmico, JSON-LD, canonical)
+- [x] **Fase 7** — Deploy na Vercel + Neon
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Arquitetura resumida
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Camadas**: `app/` (UI) → `server/actions/` (mutations, auth, validação) → `server/db/queries/` (Prisma) → `prisma/`.
+- **Server-first**: maioria das páginas são Server Components; Client Components só nas folhas interativas (votos, forms, tabs).
+- **Mutations**: Server Actions com `useActionState`/`useOptimistic`; rate-limit + Zod no servidor.
+- **Recursive tree**: `parentArgumentId` + `rootArgumentId` denormalizado → uma query busca a thread inteira, indexada.
+- **Ranking**: `hotScore` à la Reddit recalculado dentro da transação do voto.
+- **Auth**: Auth.js v5 com JWT strategy (Edge-compatible), PrismaAdapter envolvido pra injetar `username` no `createUser`.
