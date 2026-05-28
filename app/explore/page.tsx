@@ -4,7 +4,7 @@ import { listTrendingTopics } from "@/server/db/queries/topics";
 
 export const metadata: Metadata = {
   title: "Explorar",
-  description: "Assuntos mais ativos no BAEV.",
+  description: "Assuntos mais ativos no DEBATI.",
   alternates: { canonical: "/explore" },
 };
 

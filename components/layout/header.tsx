@@ -9,7 +9,7 @@ export async function Header() {
     <header className="sticky top-0 z-40 border-b border-black/10 dark:border-white/15 bg-background/80 backdrop-blur">
       <div className="mx-auto max-w-5xl flex items-center justify-between px-4 h-14">
         <Link href="/" className="font-semibold tracking-tight">
-          BAEV
+          DEBATI
         </Link>
         <nav className="flex items-center gap-3 text-sm">
           <Link href="/explore" className="hover:underline">

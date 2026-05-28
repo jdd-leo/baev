@@ -12,6 +12,6 @@ function stripTrailingSlash(s: string): string {
   return s.endsWith("/") ? s.slice(0, -1) : s;
 }
 
-export const SITE_NAME = "BAEV - The Argument Database";
-export const SITE_DESCRIPTION = "Plataforma social de debates organizados por assunto.";
+export const SITE_NAME = "DEBATI - The Argument Database";
+export const SITE_DESCRIPTION = "Plataforma social de debates e argumentos organizados por assunto.";
 export const SITE_LOCALE = "pt_BR";
